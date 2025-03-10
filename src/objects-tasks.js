@@ -71,8 +71,8 @@ function removeProperties(obj, keys) {
  *    compareObjects({a: 1, b: 2}, {a: 1, b: 2}) => true
  *    compareObjects({a: 1, b: 2}, {a: 1, b: 3}) => false
  */
-function compareObjects(/* obj1, obj2 */) {
-  throw new Error('Not implemented');
+function compareObjects(obj1, obj2) {
+  return JSON.stringify(obj1) === JSON.stringify(obj2);
 }
 
 /**
@@ -155,8 +155,13 @@ function makeWord(lettersObject) {
  *    sellTickets([25, 25, 50]) => true
  *    sellTickets([25, 100]) => false (The seller does not have enough money to give change.)
  */
-function sellTickets(/* queue */) {
-  throw new Error('Not implemented');
+function sellTickets(queue) {
+  const money = queue.reduce(
+    (sum, curr) => sum + curr,
+    -queue[queue.length - 1]
+  );
+  if (queue[queue.length - 1] - money > 25) return false;
+  return true;
 }
 
 /**
@@ -334,34 +339,135 @@ function group(array, keySelector, valueSelector) {
  *
  *  For more examples see unit tests.
  */
+class Selector {
+  selectors = {};
+
+  element(value) {
+    this.checkPresence(this.selectors.element);
+    const notEmpty = Object.keys(this.selectors).length > 0;
+    if (notEmpty) {
+      this.reportWrongPlace();
+    }
+    this.selectors.element = value;
+    return this;
+  }
+
+  id(value) {
+    this.checkPresence(this.selectors.id);
+    const notEmpty = Object.keys(this.selectors).length > 0;
+    const idIsInWrongPlace = Object.keys(this.selectors).some(
+      (sel) => sel !== 'element'
+    );
+    if (notEmpty && idIsInWrongPlace) {
+      this.reportWrongPlace();
+    }
+    this.selectors.id = `#${value}`;
+    return this;
+  }
+
+  class(value) {
+    const notEmpty = Object.keys(this.selectors).length > 0;
+    const classIsInWrongPlace = Object.keys(this.selectors).some(
+      (sel) => sel !== 'element' && sel !== 'id' && sel !== 'class'
+    );
+    if (notEmpty && classIsInWrongPlace) {
+      this.reportWrongPlace();
+    }
+    if (this.selectors.class) {
+      this.selectors.class += `.${value}`;
+    } else {
+      this.selectors.class = `.${value}`;
+    }
+    return this;
+  }
+
+  attr(value) {
+    const notEmpty = Object.keys(this.selectors).length > 0;
+    const attrIsInWrongPlace = Object.keys(this.selectors).some(
+      (sel) => sel === 'pseudoClass' || sel === 'pseudoElement'
+    );
+    if (notEmpty && attrIsInWrongPlace) {
+      this.reportWrongPlace();
+    }
+    this.selectors.attr = `[${value}]`;
+    return this;
+  }
+
+  pseudoClass(value) {
+    const notEmpty = Object.keys(this.selectors).length > 0;
+    const pseudoClassIsInWrongPlace = Object.keys(this.selectors).some(
+      (sel) => sel === 'pseudoElement'
+    );
+    if (notEmpty && pseudoClassIsInWrongPlace) {
+      this.reportWrongPlace();
+    }
+    if (this.selectors.pseudoClass) {
+      this.selectors.pseudoClass += `:${value}`;
+    } else {
+      this.selectors.pseudoClass = `:${value}`;
+    }
+    return this;
+  }
+
+  pseudoElement(value) {
+    this.checkPresence(this.selectors.pseudoElement);
+    this.selectors.pseudoElement = `::${value}`;
+    return this;
+  }
+
+  stringify() {
+    const selectors = Object.values(this.selectors);
+    return selectors.join('');
+  }
+
+  checkPresence(sel) {
+    if (this && sel) {
+      throw new Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
+  }
+
+  reportWrongPlace() {
+    if (this) {
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
+  }
+}
 
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  element(value) {
+    return new Selector().element(value);
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    return new Selector().id(value);
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    return new Selector().class(value);
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    return new Selector().attr(value);
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  pseudoClass(value) {
+    return new Selector().pseudoClass(value);
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  pseudoElement(value) {
+    return new Selector().pseudoElement(value);
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  combine(selector1, combinator, selector2) {
+    return {
+      stringify() {
+        return `${selector1.stringify()} ${combinator} ${selector2.stringify()}`;
+      },
+    };
   },
 };
 
